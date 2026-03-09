@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ChevronLeft, Menu, X, Moon, Sun } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronLeft, Menu, X, Moon, Sun, Plus } from 'lucide-react';
 
 export default function KalaidScopeApp() {
   const [userRole, setUserRole] = useState('admin');
@@ -8,6 +8,8 @@ export default function KalaidScopeApp() {
   const [selectedTalent, setSelectedTalent] = useState(null);
   const [activeTab, setActiveTab] = useState('summary');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [showProjectForm, setShowProjectForm] = useState(false);
+  const [projects, setProjects] = useState([]);
 
   const bg = darkMode ? 'bg-black' : 'bg-white';
   const text = darkMode ? 'text-white' : 'text-black';
@@ -23,10 +25,6 @@ export default function KalaidScopeApp() {
       role: 'Directrice de Photographie',
       status: 'Disponible',
       monthlyEarnings: '€18,190',
-      projects: [
-        { date: '15 mars', name: 'Campagne Moynat', status: 'confirmé', earnings: '€12,500', day: 15 },
-        { date: '22 mars', name: 'Shooting Dior Parfums', status: 'confirmé', earnings: '€8,900', day: 22 }
-      ],
       salary: { gross: 21400, commission: 3210, net: 18190 },
       contracts: {
         representation: {
@@ -35,19 +33,43 @@ export default function KalaidScopeApp() {
           commissions: { agencyBrings: 20, talentBrings: 15, rights: 10 },
           exclusive: true
         },
-        cessions: [
-          { projectName: 'Campagne Moynat', client: 'Moynat', budget: 12500, appliedCommission: 20, talentEarnings: 10000, status: 'signed' }
-        ]
+        cessions: []
       }
     },
-    { id: 2, name: 'Pierre Mossé', role: 'Réalisateur', status: 'En tournage', monthlyEarnings: '€15,600', projects: [], salary: { gross: 16800, commission: 1200, net: 15600 }, contracts: { representation: { commissions: { agencyBrings: 15, talentBrings: 10, rights: 5 }, exclusive: true }, cessions: [] } },
-    { id: 3, name: 'Sophie Durand', role: 'Styliste', status: 'Vacances', monthlyEarnings: '€12,400', projects: [], salary: { gross: 13200, commission: 800, net: 12400 }, contracts: { representation: { commissions: { agencyBrings: 20, talentBrings: 15, rights: 10 }, exclusive: false }, cessions: [] } }
+    { id: 2, name: 'Pierre Mossé', role: 'Réalisateur', status: 'En tournage', monthlyEarnings: '€15,600', salary: { gross: 16800, commission: 1200, net: 15600 }, contracts: { representation: { commissions: { agencyBrings: 15, talentBrings: 10, rights: 5 }, exclusive: true }, cessions: [] } },
+    { id: 3, name: 'Sophie Durand', role: 'Styliste', status: 'Vacances', monthlyEarnings: '€12,400', salary: { gross: 13200, commission: 800, net: 12400 }, contracts: { representation: { commissions: { agencyBrings: 20, talentBrings: 15, rights: 10 }, exclusive: false }, cessions: [] } }
   ];
 
-  const projects = [
-    { id: 1, name: 'Campagne Moynat', client: 'Moynat', budget: 25000, status: 'En cours', createdBy: 'agent', talents: [{ talentId: 1, percentage: 20 }] },
-    { id: 2, name: 'Shooting Dior', client: 'Dior Beauty', budget: 18000, status: 'Confirmé', createdBy: 'admin', talents: [{ talentId: 1, percentage: 25 }] }
-  ];
+  // Init localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('kalaidProjects');
+    if (saved) {
+      setProjects(JSON.parse(saved));
+    } else {
+      const defaultProjects = [
+        { id: 1, name: 'Campagne Moynat', client: 'Moynat', budget: 25000, status: 'En cours', createdBy: 'admin', startDate: '2026-03-01', endDate: '2026-03-31', talents: [{ talentId: 1, percentage: 20 }] },
+        { id: 2, name: 'Shooting Dior', client: 'Dior Beauty', budget: 18000, status: 'Confirmé', createdBy: 'admin', startDate: '2026-03-15', endDate: '2026-03-22', talents: [{ talentId: 1, percentage: 25 }] }
+      ];
+      setProjects(defaultProjects);
+      localStorage.setItem('kalaidProjects', JSON.stringify(defaultProjects));
+    }
+  }, []);
+
+  const addProject = (newProject) => {
+    const project = {
+      ...newProject,
+      id: Date.now(),
+      createdBy: userRole
+    };
+    const updated = [...projects, project];
+    setProjects(updated);
+    localStorage.setItem('kalaidProjects', JSON.stringify(updated));
+    setShowProjectForm(false);
+  };
+
+  const getTalentProjects = (talentId) => {
+    return projects.filter(p => p.talents.some(t => t.talentId === talentId));
+  };
 
   const filteredTalents = talents.filter(t => filterStatus === 'all' || t.status.toLowerCase().includes(filterStatus));
 
@@ -89,150 +111,190 @@ export default function KalaidScopeApp() {
     </header>
   );
 
-  const TalentView = ({ talent }) => (
-    <div className="px-6 lg:px-12 py-12">
-      <h1 className="text-6xl lg:text-7xl font-light mb-2">{talent.name}</h1>
-      <p className={`text-sm tracking-widest ${muted} mb-12`}>{talent.role}</p>
-
-      <div className={`flex gap-12 border-b ${border} mb-12 overflow-x-auto`}>
-        {[{ id: 'summary', label: 'Résumé' }, { id: 'planning', label: 'Planning' }, { id: 'contracts', label: 'Contrats' }, { id: 'salary', label: 'Rémunération' }].map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`text-sm tracking-widest py-4 border-b-2 whitespace-nowrap transition ${activeTab === tab.id ? 'border-current' : 'border-transparent ' + muted}`}>
-            {tab.label}
-          </button>
-        ))}
+  const ProjectFormModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className={`${subtle} border ${border} rounded p-8 max-w-md w-full`}>
+        <h2 className="text-2xl font-light mb-6">Créer un projet</h2>
+        <ProjectForm onAdd={addProject} onCancel={() => setShowProjectForm(false)} talents={talents} />
       </div>
-
-      {activeTab === 'summary' && (
-        <div>
-          <div className="grid grid-cols-3 gap-6 mb-16">
-            {[{ label: 'Projets', value: talent.projects.length }, { label: 'Revenus', value: talent.monthlyEarnings }, { label: 'Contrats', value: talent.contracts.cessions.length + 1 }].map((s, i) => (
-              <div key={i} className={`${subtle} p-8 border ${border} text-center`}>
-                <p className={`text-xs tracking-widest mb-4 ${muted}`}>{s.label}</p>
-                <p className="text-2xl font-light">{s.value}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mb-16">
-            <h2 className="text-xs tracking-widest mb-8 uppercase">Statut représentation</h2>
-            <div className={`${subtle} border ${border} p-8`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-lg font-light mb-2">Contrat {talent.contracts.representation.exclusive ? 'exclusif' : 'non exclusif'}</p>
-                  <p className={`text-sm ${muted}`}>Jusqu'au {talent.contracts.representation.endDate}</p>
-                </div>
-                <span className={`text-xs tracking-widest px-3 py-1 ${talent.contracts.representation.exclusive ? `${darkMode ? 'bg-purple-950 text-purple-400' : 'bg-purple-100 text-purple-800'}` : `${darkMode ? 'bg-gray-800 text-gray-400' : 'bg-gray-200 text-gray-600'}`}`}>
-                  {talent.contracts.representation.exclusive ? 'EXCLUSIF' : 'NON EXCLUSIF'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h2 className="text-xs tracking-widest mb-8 uppercase">Prochains projets</h2>
-            <div className="space-y-3">
-              {talent.projects.slice(0, 3).map((p, i) => (
-                <div key={i} className={`flex justify-between py-4 px-6 border ${border} ${hover}`}>
-                  <div><p className={`text-xs ${muted} mb-1`}>{p.date}</p><p className="font-light">{p.name}</p></div>
-                  <p className="text-lg font-light">{p.earnings}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'planning' && (
-        <div>
-          <h3 className="text-xs tracking-widest mb-8 uppercase">Calendrier mars 2026</h3>
-          <div className={`border ${border} p-6 mb-12`}>
-            <div className="grid grid-cols-7 gap-2 mb-6">
-              {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(day => (
-                <div key={day} className="text-center"><p className={`text-xs tracking-widest ${muted}`}>{day}</p></div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-2 mb-12">
-              {[...Array(31)].map((_, i) => {
-                const day = i + 1;
-                const hasEvent = talent.projects.some(p => p.day === day);
-                return (
-                  <div key={i} className={`aspect-square flex items-center justify-center text-sm font-light transition ${hasEvent ? `${darkMode ? 'bg-white text-black' : 'bg-black text-white'}` : `${subtle} border ${border}`}`}>
-                    {day}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <h3 className="text-xs tracking-widest mb-8 uppercase">Détail des projets</h3>
-          <div className="space-y-3">
-            {talent.projects.length > 0 ? (
-              talent.projects.map((p, i) => (
-                <div key={i} className={`flex justify-between py-4 px-6 border ${border}`}>
-                  <div><p className={`text-xs ${muted} mb-1`}>{p.date}</p><p className="font-light">{p.name}</p></div>
-                  <p className="text-lg font-light">{p.earnings}</p>
-                </div>
-              ))
-            ) : (
-              <p className={`text-sm ${muted} text-center py-8`}>Aucun projet ce mois</p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'contracts' && (
-        <div>
-          <h3 className="text-xs tracking-widest mb-8 uppercase">Contrat de représentation</h3>
-          <div className={`${subtle} border ${border} p-6 mb-12`}>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="font-light mb-2">Contrat {talent.contracts.representation.exclusive ? 'exclusif' : 'non exclusif'}</p>
-                <p className={`text-sm ${muted}`}>Signé le {talent.contracts.representation.signedDate}</p>
-              </div>
-              <span className={`text-xs tracking-widest px-3 py-1 ${talent.contracts.representation.exclusive ? `${darkMode ? 'bg-purple-950 text-purple-400' : 'bg-purple-100 text-purple-800'}` : `${darkMode ? 'bg-gray-800 text-gray-400' : 'bg-gray-200 text-gray-600'}`}`}>
-                {talent.contracts.representation.exclusive ? 'EXCLUSIF' : 'NON EXCLUSIF'}
-              </span>
-            </div>
-          </div>
-
-          <h3 className="text-xs tracking-widest mb-8 uppercase">Contrats de cession</h3>
-          {talent.contracts.cessions.length > 0 ? (
-            talent.contracts.cessions.map((c, i) => (
-              <div key={i} className={`border ${border} p-6 mb-4`}>
-                <p className="font-light">{c.projectName}</p>
-                <p className={`text-xs ${muted} mt-2`}>{c.client} - €{c.budget.toLocaleString()}</p>
-              </div>
-            ))
-          ) : (
-            <p className={`text-sm ${muted}`}>Aucun contrat de cession</p>
-          )}
-        </div>
-      )}
-
-      {activeTab === 'salary' && (
-        <div>
-          <div className="grid grid-cols-3 gap-6 mb-12">
-            {[{ label: 'Total', value: `€${talent.salary.gross.toLocaleString()}` }, { label: 'Commission', value: `-€${talent.salary.commission}` }, { label: 'Net', value: `€${talent.salary.net.toLocaleString()}` }].map((s, i) => (
-              <div key={i} className={`${subtle} p-8 border ${border} text-center`}>
-                <p className={`text-xs tracking-widest mb-4 ${muted}`}>{s.label}</p>
-                <p className="text-2xl font-light">{s.value}</p>
-              </div>
-            ))}
-          </div>
-
-          <h3 className="text-xs tracking-widest mb-8 uppercase">Commissions contractuelles</h3>
-          <div className="grid grid-cols-3 gap-4">
-            {[{ label: 'Agence apporte', value: `${talent.contracts.representation.commissions.agencyBrings}%` }, { label: 'Talent apporte', value: `${talent.contracts.representation.commissions.talentBrings}%` }, { label: 'Droits', value: `${talent.contracts.representation.commissions.rights}%` }].map((s, i) => (
-              <div key={i} className={`border ${border} p-4 text-center`}>
-                <p className={`text-xs ${muted} mb-2`}>{s.label}</p>
-                <p className="text-xl font-light">{s.value}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
+
+  const ProjectForm = ({ onAdd, onCancel, talents }) => {
+    const [formData, setFormData] = useState({
+      name: '',
+      client: '',
+      budget: '',
+      status: 'En cours',
+      startDate: '',
+      endDate: '',
+      talentIds: []
+    });
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      if (formData.name && formData.client && formData.budget) {
+        onAdd({
+          name: formData.name,
+          client: formData.client,
+          budget: parseInt(formData.budget),
+          status: formData.status,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          talents: formData.talentIds.map(id => ({ talentId: parseInt(id), percentage: 20 }))
+        });
+        setFormData({ name: '', client: '', budget: '', status: 'En cours', startDate: '', endDate: '', talentIds: [] });
+      }
+    };
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="text-xs tracking-widest block mb-2">Nom du projet</label>
+          <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className={`w-full px-3 py-2 border ${border} ${subtle}`} required />
+        </div>
+        <div>
+          <label className="text-xs tracking-widest block mb-2">Client</label>
+          <input type="text" value={formData.client} onChange={(e) => setFormData({...formData, client: e.target.value})} className={`w-full px-3 py-2 border ${border} ${subtle}`} required />
+        </div>
+        <div>
+          <label className="text-xs tracking-widest block mb-2">Budget (€)</label>
+          <input type="number" value={formData.budget} onChange={(e) => setFormData({...formData, budget: e.target.value})} className={`w-full px-3 py-2 border ${border} ${subtle}`} required />
+        </div>
+        <div>
+          <label className="text-xs tracking-widest block mb-2">Statut</label>
+          <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} className={`w-full px-3 py-2 border ${border} ${subtle}`}>
+            <option>En cours</option>
+            <option>Confirmé</option>
+            <option>En attente</option>
+          </select>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs tracking-widest block mb-2">Début</label>
+            <input type="date" value={formData.startDate} onChange={(e) => setFormData({...formData, startDate: e.target.value})} className={`w-full px-3 py-2 border ${border} ${subtle} text-xs`} />
+          </div>
+          <div>
+            <label className="text-xs tracking-widest block mb-2">Fin</label>
+            <input type="date" value={formData.endDate} onChange={(e) => setFormData({...formData, endDate: e.target.value})} className={`w-full px-3 py-2 border ${border} ${subtle} text-xs`} />
+          </div>
+        </div>
+        <div>
+          <label className="text-xs tracking-widest block mb-2">Talents</label>
+          <div className="space-y-2">
+            {talents.map(t => (
+              <label key={t.id} className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={formData.talentIds.includes(t.id.toString())} onChange={(e) => {
+                  if (e.target.checked) {
+                    setFormData({...formData, talentIds: [...formData.talentIds, t.id.toString()]});
+                  } else {
+                    setFormData({...formData, talentIds: formData.talentIds.filter(id => id !== t.id.toString())});
+                  }
+                }} />
+                {t.name}
+              </label>
+            ))}
+          </div>
+        </div>
+        <div className="flex gap-3 mt-6">
+          <button type="submit" className={`flex-1 py-2 px-4 ${darkMode ? 'bg-white text-black' : 'bg-black text-white'} text-sm tracking-widest`}>Créer</button>
+          <button type="button" onClick={onCancel} className={`flex-1 py-2 px-4 border ${border} text-sm tracking-widest`}>Annuler</button>
+        </div>
+      </form>
+    );
+  };
+
+  const TalentView = ({ talent }) => {
+    const talentProjects = getTalentProjects(talent.id);
+    return (
+      <div className="px-6 lg:px-12 py-12">
+        <h1 className="text-6xl lg:text-7xl font-light mb-2">{talent.name}</h1>
+        <p className={`text-sm tracking-widest ${muted} mb-12`}>{talent.role}</p>
+
+        <div className={`flex gap-12 border-b ${border} mb-12 overflow-x-auto`}>
+          {[{ id: 'summary', label: 'Résumé' }, { id: 'planning', label: 'Planning' }, { id: 'contracts', label: 'Contrats' }, { id: 'salary', label: 'Rémunération' }].map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`text-sm tracking-widest py-4 border-b-2 whitespace-nowrap transition ${activeTab === tab.id ? 'border-current' : 'border-transparent ' + muted}`}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'summary' && (
+          <div>
+            <div className="grid grid-cols-3 gap-6 mb-16">
+              {[{ label: 'Projets', value: talentProjects.length }, { label: 'Revenus', value: talent.monthlyEarnings }, { label: 'Contrats', value: '1' }].map((s, i) => (
+                <div key={i} className={`${subtle} p-8 border ${border} text-center`}>
+                  <p className={`text-xs tracking-widest mb-4 ${muted}`}>{s.label}</p>
+                  <p className="text-2xl font-light">{s.value}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mb-16">
+              <h2 className="text-xs tracking-widest mb-8 uppercase">Projets assignés</h2>
+              <div className="space-y-3">
+                {talentProjects.length > 0 ? (
+                  talentProjects.map((p, i) => (
+                    <div key={i} className={`flex justify-between py-4 px-6 border ${border}`}>
+                      <div><p className="font-light">{p.name}</p><p className={`text-xs ${muted} mt-1`}>{p.client}</p></div>
+                      <p className="text-lg font-light">€{p.budget.toLocaleString()}</p>
+                    </div>
+                  ))
+                ) : (
+                  <p className={`text-sm ${muted}`}>Aucun projet assigné</p>
+                )}
+              </div>
+            </div>
+
+            <button onClick={() => setShowProjectForm(true)} className={`flex items-center gap-2 px-4 py-3 border ${border} text-sm tracking-widest ${hover}`}>
+              <Plus size={16} /> Ajouter un projet
+            </button>
+          </div>
+        )}
+
+        {activeTab === 'planning' && (
+          <div>
+            <h3 className="text-xs tracking-widest mb-8 uppercase">Projets assignés</h3>
+            <div className="space-y-3">
+              {talentProjects.length > 0 ? (
+                talentProjects.map((p, i) => (
+                  <div key={i} className={`border ${border} p-6`}>
+                    <p className="font-light">{p.name}</p>
+                    <p className={`text-xs ${muted} mt-2`}>{p.startDate} à {p.endDate}</p>
+                  </div>
+                ))
+              ) : (
+                <p className={`text-sm ${muted}`}>Aucun projet</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'contracts' && (
+          <div>
+            <h3 className="text-xs tracking-widest mb-8 uppercase">Contrat de représentation</h3>
+            <div className={`${subtle} border ${border} p-6`}>
+              <p className="font-light mb-2">Contrat {talent.contracts.representation.exclusive ? 'exclusif' : 'non exclusif'}</p>
+              <p className={`text-sm ${muted}`}>Signé le {talent.contracts.representation.signedDate}</p>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'salary' && (
+          <div>
+            <div className="grid grid-cols-3 gap-6 mb-12">
+              {[{ label: 'Total', value: `€${talent.salary.gross.toLocaleString()}` }, { label: 'Commission', value: `-€${talent.salary.commission}` }, { label: 'Net', value: `€${talent.salary.net.toLocaleString()}` }].map((s, i) => (
+                <div key={i} className={`${subtle} p-8 border ${border} text-center`}>
+                  <p className={`text-xs tracking-widest mb-4 ${muted}`}>{s.label}</p>
+                  <p className="text-2xl font-light">{s.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const AgentView = () => {
     if (selectedTalent) {
@@ -271,7 +333,11 @@ export default function KalaidScopeApp() {
               ))}
             </div>
 
-            <div className="mb-16">
+            <button onClick={() => setShowProjectForm(true)} className={`flex items-center gap-2 px-4 py-3 mb-12 border ${border} text-sm tracking-widest ${hover}`}>
+              <Plus size={16} /> Créer un projet
+            </button>
+
+            <div>
               <h2 className="text-xs tracking-widest mb-8 uppercase">Talents disponibles</h2>
               <div className="space-y-3">
                 {filteredTalents.slice(0, 3).map(t => (
@@ -279,18 +345,6 @@ export default function KalaidScopeApp() {
                     <div><p className="font-light">{t.name}</p><p className={`text-xs ${muted} mt-1`}>{t.role}</p></div>
                     <p className={`text-xs px-3 py-1 ${t.status === 'Disponible' ? `${darkMode ? 'bg-green-950 text-green-400' : 'bg-green-100 text-green-800'}` : subtle}`}>{t.status}</p>
                   </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h2 className="text-xs tracking-widest mb-8 uppercase">Mes projets en cours</h2>
-              <div className="space-y-3">
-                {projects.filter(p => p.createdBy === 'agent').slice(0, 2).map(p => (
-                  <div key={p.id} className={`border ${border} p-6`}>
-                    <p className="font-light">{p.name}</p>
-                    <p className={`text-xs ${muted} mt-1`}>{p.client} - €{p.budget.toLocaleString()}</p>
-                  </div>
                 ))}
               </div>
             </div>
@@ -320,7 +374,7 @@ export default function KalaidScopeApp() {
 
         {activeTab === 'myprojects' && (
           <div>
-            <h2 className="text-xs tracking-widest mb-8 uppercase">Projets créés</h2>
+            <h2 className="text-xs tracking-widest mb-8 uppercase">Mes projets créés</h2>
             <div className="space-y-4">
               {projects.filter(p => p.createdBy === 'agent').map(p => (
                 <div key={p.id} className={`${subtle} border ${border} p-8`}>
@@ -339,25 +393,13 @@ export default function KalaidScopeApp() {
   };
 
   const AdminView = () => {
-    if (selectedTalent) {
-      return (
-        <div className="px-6 lg:px-12 py-12">
-          <button onClick={() => setSelectedTalent(null)} className={`flex items-center gap-2 mb-12 p-3 transition ${hover}`}>
-            <ChevronLeft size={18} />
-            <span className="text-sm">Retour</span>
-          </button>
-          <TalentView talent={selectedTalent} />
-        </div>
-      );
-    }
-
     return (
       <div className="px-6 lg:px-12 py-12">
         <h1 className="text-6xl lg:text-7xl font-light mb-2">Admin</h1>
         <p className={`text-sm tracking-widest ${muted} mb-12`}>Gestion complète</p>
 
         <div className={`flex gap-12 border-b ${border} mb-12 overflow-x-auto`}>
-          {[{ id: 'summary', label: 'Résumé' }, { id: 'overview', label: 'Aperçu' }, { id: 'talents', label: 'Talents' }, { id: 'contracts', label: 'Contrats' }, { id: 'projects', label: 'Projets' }].map(tab => (
+          {[{ id: 'summary', label: 'Résumé' }, { id: 'talents', label: 'Talents' }, { id: 'projects', label: 'Projets' }].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`text-sm tracking-widest py-4 border-b-2 whitespace-nowrap transition ${activeTab === tab.id ? 'border-current' : 'border-transparent ' + muted}`}>
               {tab.label}
             </button>
@@ -367,7 +409,7 @@ export default function KalaidScopeApp() {
         {activeTab === 'summary' && (
           <div>
             <div className="grid grid-cols-4 gap-6 mb-16">
-              {[{ label: 'Chiffre d\'affaires', value: '€156,200' }, { label: 'Commissions agence', value: '€23,430' }, { label: 'Talents rémunérés', value: '€132,770' }, { label: 'Projets actifs', value: '12' }].map((s, i) => (
+              {[{ label: 'Chiffre d\'affaires', value: `€${projects.reduce((a, b) => a + b.budget, 0).toLocaleString()}` }, { label: 'Projets total', value: projects.length }, { label: 'Talents', value: talents.length }, { label: 'Projets en cours', value: projects.filter(p => p.status === 'En cours').length }].map((s, i) => (
                 <div key={i} className={`${subtle} p-6 border ${border} text-center`}>
                   <p className={`text-xs tracking-widest mb-4 ${muted}`}>{s.label}</p>
                   <p className="text-2xl font-light">{s.value}</p>
@@ -375,43 +417,9 @@ export default function KalaidScopeApp() {
               ))}
             </div>
 
-            <div className="mb-16">
-              <h2 className="text-xs tracking-widest mb-8 uppercase">Paiements à venir — 31 mars</h2>
-              <div className="space-y-3">
-                {talents.map((t, i) => (
-                  <div key={i} className={`flex justify-between py-4 px-6 border ${border}`}>
-                    <p className="font-light">{t.name}</p>
-                    <p className="text-lg font-light">{t.monthlyEarnings}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h2 className="text-xs tracking-widest mb-8 uppercase">Talents actifs</h2>
-              <div className="space-y-3">
-                {talents.slice(0, 3).map(t => (
-                  <div key={t.id} className={`flex justify-between py-4 px-6 border ${border}`}>
-                    <div><p className="font-light">{t.name}</p><p className={`text-xs ${muted} mt-1`}>{t.role}</p></div>
-                    <p className={`text-xs px-3 py-1 ${t.status === 'Disponible' ? `${darkMode ? 'bg-green-950 text-green-400' : 'bg-green-100 text-green-800'}` : subtle}`}>{t.status}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'overview' && (
-          <div>
-            <h2 className="text-xs tracking-widest mb-8 uppercase">Mars 2026 — Détails financiers</h2>
-            <div className="grid grid-cols-4 gap-6">
-              {[{ label: 'CA', value: '€156,200' }, { label: 'Commissions', value: '€23,430' }, { label: 'Talents rému', value: '€132,770' }, { label: 'Projets', value: '12' }].map((s, i) => (
-                <div key={i} className={`${subtle} p-6 border ${border} text-center`}>
-                  <p className={`text-xs tracking-widest mb-4 ${muted}`}>{s.label}</p>
-                  <p className="text-2xl font-light">{s.value}</p>
-                </div>
-              ))}
-            </div>
+            <button onClick={() => setShowProjectForm(true)} className={`flex items-center gap-2 px-4 py-3 mb-12 border ${border} text-sm tracking-widest ${hover}`}>
+              <Plus size={16} /> Créer un projet
+            </button>
           </div>
         )}
 
@@ -429,49 +437,6 @@ export default function KalaidScopeApp() {
           </div>
         )}
 
-        {activeTab === 'contracts' && (
-          <div>
-            <h2 className="text-xs tracking-widest mb-8 uppercase">Contrats de représentation</h2>
-            <div className="space-y-3 mb-16">
-              {talents.map(t => (
-                <div key={t.id} className={`border ${border} p-6`}>
-                  <div className="flex items-center justify-between mb-4">
-                    <div><p className="font-light">{t.name}</p><p className={`text-xs ${muted} mt-1`}>Actif</p></div>
-                    <span className={`text-xs tracking-widest px-3 py-1 ${t.contracts.representation.exclusive ? `${darkMode ? 'bg-purple-950 text-purple-400' : 'bg-purple-100 text-purple-800'}` : `${darkMode ? 'bg-gray-800 text-gray-400' : 'bg-gray-200 text-gray-600'}`}`}>
-                      {t.contracts.representation.exclusive ? 'EXCLUSIF' : 'NON EXCLUSIF'}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4 text-xs">
-                    {[{ label: 'Agence apporte', v: t.contracts.representation.commissions.agencyBrings }, { label: 'Talent apporte', v: t.contracts.representation.commissions.talentBrings }, { label: 'Droits', v: t.contracts.representation.commissions.rights }].map((c, i) => (
-                      <div key={i}><p className={muted}>{c.label}</p><p className="font-light mt-1">{c.v}%</p></div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <h2 className="text-xs tracking-widest mb-8 uppercase">Contrats de cession</h2>
-            <div className="space-y-3">
-              {talents.filter(t => t.contracts.cessions.length > 0).map(t => (
-                t.contracts.cessions.map((c, i) => (
-                  <div key={`${t.id}-${i}`} className={`border ${border} p-6`}>
-                    <div className="flex justify-between mb-3">
-                      <div><p className="font-light">{c.projectName}</p><p className={`text-xs ${muted} mt-1`}>{t.name}</p></div>
-                      <span className={`text-xs tracking-widest px-3 py-1 ${c.status === 'signed' ? `${darkMode ? 'bg-blue-950 text-blue-400' : 'bg-blue-100 text-blue-800'}` : subtle}`}>{c.status === 'signed' ? 'SIGNÉ' : 'EN ATTENTE'}</span>
-                    </div>
-                    <div className="grid grid-cols-4 gap-4 text-xs">
-                      <div><p className={muted}>Budget</p><p className="font-light mt-1">€{c.budget.toLocaleString()}</p></div>
-                      <div><p className={muted}>Commission</p><p className="font-light mt-1">{c.appliedCommission}%</p></div>
-                      <div><p className={muted}>Talent gagne</p><p className="font-light mt-1">€{c.talentEarnings.toLocaleString()}</p></div>
-                      <div><p className={muted}>Agence gagne</p><p className="font-light mt-1">€{(c.budget - c.talentEarnings).toLocaleString()}</p></div>
-                    </div>
-                  </div>
-                ))
-              ))}
-            </div>
-          </div>
-        )}
-
         {activeTab === 'projects' && (
           <div>
             <h2 className="text-xs tracking-widest mb-8 uppercase">Tous les projets</h2>
@@ -483,12 +448,7 @@ export default function KalaidScopeApp() {
                     <span className={`text-xs tracking-widest px-3 py-1 ${p.status === 'En cours' ? `${darkMode ? 'bg-white text-black' : 'bg-black text-white'}` : subtle}`}>{p.status}</span>
                   </div>
                   <p className="text-2xl font-light mb-4">€{p.budget.toLocaleString()}</p>
-                  <div className={`text-xs ${muted}`}>
-                    {p.talents.map(t => {
-                      const talent = talents.find(ta => ta.id === t.talentId);
-                      return <p key={t.talentId}>{talent?.name}: <span className="font-light">{t.percentage}%</span></p>;
-                    })}
-                  </div>
+                  <p className={`text-xs ${muted}`}>Créé par: {p.createdBy}</p>
                 </div>
               ))}
             </div>
@@ -501,11 +461,12 @@ export default function KalaidScopeApp() {
   return (
     <div style={{ fontFamily: '"Futura PT", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }} className={`${bg} ${text} min-h-screen`}>
       <Header />
+      {showProjectForm && <ProjectFormModal />}
       {userRole === 'talent' && <TalentView talent={talents[0]} />}
       {userRole === 'agent' && <AgentView />}
       {userRole === 'admin' && <AdminView />}
       <footer className={`border-t ${border} mt-20 py-12 px-6 lg:px-12 text-center text-xs ${muted}`}>
-        <p className="tracking-widest">KALAID SCOPE — v0.8 PROTOTYPE</p>
+        <p className="tracking-widest">KALAID SCOPE — v1.0 avec formulaires</p>
       </footer>
     </div>
   );
