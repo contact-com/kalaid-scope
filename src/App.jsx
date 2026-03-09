@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Menu, X, Moon, Sun, Plus } from 'lucide-react';
+import { ChevronLeft, Menu, X, Moon, Sun, Plus, Copy, Check } from 'lucide-react';
 
 export default function KalaidScopeApp() {
   const [userRole, setUserRole] = useState('admin');
@@ -9,7 +9,14 @@ export default function KalaidScopeApp() {
   const [activeTab, setActiveTab] = useState('summary');
   const [filterStatus, setFilterStatus] = useState('all');
   const [showProjectForm, setShowProjectForm] = useState(false);
+  const [showInviteForm, setShowInviteForm] = useState(false);
   const [projects, setProjects] = useState([]);
+  const [talents, setTalents] = useState([]);
+  const [invitations, setInvitations] = useState([]);
+  const [inviteLink, setInviteLink] = useState('');
+  const [copiedInvite, setCopiedInvite] = useState(false);
+  const [signupMode, setSignupMode] = useState(false);
+  const [currentInvite, setCurrentInvite] = useState(null);
 
   const bg = darkMode ? 'bg-black' : 'bg-white';
   const text = darkMode ? 'text-white' : 'text-black';
@@ -18,40 +25,65 @@ export default function KalaidScopeApp() {
   const subtle = darkMode ? 'bg-gray-950' : 'bg-gray-50';
   const hover = darkMode ? 'hover:bg-gray-950' : 'hover:bg-gray-50';
 
-  const talents = [
-    {
-      id: 1,
-      name: 'Emma Laurent',
-      role: 'Directrice de Photographie',
-      status: 'Disponible',
-      monthlyEarnings: '€18,190',
-      salary: { gross: 21400, commission: 3210, net: 18190 },
-      contracts: {
-        representation: {
-          signedDate: '12 jan 2026',
-          endDate: '12 jan 2028',
-          commissions: { agencyBrings: 20, talentBrings: 15, rights: 10 },
-          exclusive: true
-        },
-        cessions: []
-      }
-    },
-    { id: 2, name: 'Pierre Mossé', role: 'Réalisateur', status: 'En tournage', monthlyEarnings: '€15,600', salary: { gross: 16800, commission: 1200, net: 15600 }, contracts: { representation: { commissions: { agencyBrings: 15, talentBrings: 10, rights: 5 }, exclusive: true }, cessions: [] } },
-    { id: 3, name: 'Sophie Durand', role: 'Styliste', status: 'Vacances', monthlyEarnings: '€12,400', salary: { gross: 13200, commission: 800, net: 12400 }, contracts: { representation: { commissions: { agencyBrings: 20, talentBrings: 15, rights: 10 }, exclusive: false }, cessions: [] } }
-  ];
-
   // Init localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('kalaidProjects');
-    if (saved) {
-      setProjects(JSON.parse(saved));
+    const savedTalents = localStorage.getItem('kalaidTalents');
+    const savedProjects = localStorage.getItem('kalaidProjects');
+    const savedInvitations = localStorage.getItem('kalaidInvitations');
+
+    if (savedTalents) {
+      setTalents(JSON.parse(savedTalents));
+    } else {
+      const defaultTalents = [
+        {
+          id: 1,
+          name: 'Emma Laurent',
+          role: 'Directrice de Photographie',
+          status: 'Disponible',
+          monthlyEarnings: '€18,190',
+          salary: { gross: 21400, commission: 3210, net: 18190 },
+          contracts: {
+            representation: {
+              signedDate: '12 jan 2026',
+              endDate: '12 jan 2028',
+              commissions: { agencyBrings: 20, talentBrings: 15, rights: 10 },
+              exclusive: true
+            },
+            cessions: []
+          }
+        },
+        { id: 2, name: 'Pierre Mossé', role: 'Réalisateur', status: 'En tournage', monthlyEarnings: '€15,600', salary: { gross: 16800, commission: 1200, net: 15600 }, contracts: { representation: { commissions: { agencyBrings: 15, talentBrings: 10, rights: 5 }, exclusive: true }, cessions: [] } },
+        { id: 3, name: 'Sophie Durand', role: 'Styliste', status: 'Vacances', monthlyEarnings: '€12,400', salary: { gross: 13200, commission: 800, net: 12400 }, contracts: { representation: { commissions: { agencyBrings: 20, talentBrings: 15, rights: 10 }, exclusive: false }, cessions: [] } }
+      ];
+      setTalents(defaultTalents);
+      localStorage.setItem('kalaidTalents', JSON.stringify(defaultTalents));
+    }
+
+    if (savedProjects) {
+      setProjects(JSON.parse(savedProjects));
     } else {
       const defaultProjects = [
-        { id: 1, name: 'Campagne Moynat', client: 'Moynat', budget: 25000, status: 'En cours', createdBy: 'admin', startDate: '2026-03-01', endDate: '2026-03-31', talents: [{ talentId: 1, percentage: 20 }] },
-        { id: 2, name: 'Shooting Dior', client: 'Dior Beauty', budget: 18000, status: 'Confirmé', createdBy: 'admin', startDate: '2026-03-15', endDate: '2026-03-22', talents: [{ talentId: 1, percentage: 25 }] }
+        { id: 1, name: 'Campagne Moynat', client: 'Moynat', budget: 25000, talentPrice: 20000, agencyEarnings: 5000, agencyCommission: 25, status: 'En cours', createdBy: 'admin', startDate: '2026-03-01', endDate: '2026-03-31', talents: [{ talentId: 1, percentage: 20 }] },
+        { id: 2, name: 'Shooting Dior', client: 'Dior Beauty', budget: 18000, talentPrice: 14400, agencyEarnings: 3600, agencyCommission: 25, status: 'Confirmé', createdBy: 'admin', startDate: '2026-03-15', endDate: '2026-03-22', talents: [{ talentId: 1, percentage: 25 }] }
       ];
       setProjects(defaultProjects);
       localStorage.setItem('kalaidProjects', JSON.stringify(defaultProjects));
+    }
+
+    if (savedInvitations) {
+      setInvitations(JSON.parse(savedInvitations));
+    }
+
+    // Check URL for invite
+    const params = new URLSearchParams(window.location.search);
+    const inviteToken = params.get('invite');
+    if (inviteToken) {
+      const savedInvites = JSON.parse(localStorage.getItem('kalaidInvitations') || '[]');
+      const found = savedInvites.find(i => i.token === inviteToken);
+      if (found) {
+        setSignupMode(true);
+        setCurrentInvite(found);
+      }
     }
   }, []);
 
@@ -67,11 +99,65 @@ export default function KalaidScopeApp() {
     setShowProjectForm(false);
   };
 
+  const createInvitation = (email) => {
+    const token = Math.random().toString(36).substring(2, 15);
+    const invite = {
+      token,
+      email,
+      createdAt: new Date().toISOString(),
+      status: 'pending'
+    };
+    const updated = [...invitations, invite];
+    setInvitations(updated);
+    localStorage.setItem('kalaidInvitations', JSON.stringify(updated));
+    
+    const link = `${window.location.origin}?invite=${token}`;
+    setInviteLink(link);
+    return link;
+  };
+
+  const completeSignup = (talentData) => {
+    const newTalent = {
+      id: Date.now(),
+      ...talentData,
+      monthlyEarnings: `€${parseInt(talentData.salary).toLocaleString()}`,
+      salary: { gross: parseInt(talentData.salary || 0), commission: 0, net: parseInt(talentData.salary || 0) },
+      contracts: {
+        representation: {
+          signedDate: new Date().toISOString().split('T')[0],
+          endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          commissions: { agencyBrings: 20, talentBrings: 15, rights: 10 },
+          exclusive: true
+        },
+        cessions: []
+      }
+    };
+
+    const updated = [...talents, newTalent];
+    setTalents(updated);
+    localStorage.setItem('kalaidTalents', JSON.stringify(updated));
+
+    // Mark invite as used
+    const updatedInvites = invitations.map(i => 
+      i.token === currentInvite.token ? { ...i, status: 'completed' } : i
+    );
+    setInvitations(updatedInvites);
+    localStorage.setItem('kalaidInvitations', JSON.stringify(updatedInvites));
+
+    setSignupMode(false);
+    setCurrentInvite(null);
+    setUserRole('talent');
+  };
+
   const getTalentProjects = (talentId) => {
     return projects.filter(p => p.talents.some(t => t.talentId === talentId));
   };
 
   const filteredTalents = talents.filter(t => filterStatus === 'all' || t.status.toLowerCase().includes(filterStatus));
+
+  if (signupMode && currentInvite) {
+    return <SignupPage invite={currentInvite} darkMode={darkMode} onComplete={completeSignup} />;
+  }
 
   const Header = () => (
     <header className={`border-b ${border}`}>
@@ -113,14 +199,23 @@ export default function KalaidScopeApp() {
 
   const ProjectFormModal = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className={`${subtle} border ${border} rounded p-8 max-w-md w-full`}>
+      <div className={`${subtle} border ${border} rounded p-8 max-w-md w-full max-h-96 overflow-y-auto`}>
         <h2 className="text-2xl font-light mb-6">Créer un projet</h2>
-        <ProjectForm onAdd={addProject} onCancel={() => setShowProjectForm(false)} talents={talents} />
+        <ProjectForm onAdd={addProject} onCancel={() => setShowProjectForm(false)} talents={talents} darkMode={darkMode} border={border} subtle={subtle} />
       </div>
     </div>
   );
 
-  const ProjectForm = ({ onAdd, onCancel, talents }) => {
+  const InviteFormModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className={`${subtle} border ${border} rounded p-8 max-w-md w-full`}>
+        <h2 className="text-2xl font-light mb-6">Inviter un talent</h2>
+        <InviteForm onInvite={createInvitation} onCancel={() => { setShowInviteForm(false); setInviteLink(''); }} darkMode={darkMode} border={border} subtle={subtle} inviteLink={inviteLink} copiedInvite={copiedInvite} setCopiedInvite={setCopiedInvite} />
+      </div>
+    </div>
+  );
+
+  const ProjectForm = ({ onAdd, onCancel, talents, darkMode, border, subtle }) => {
     const [formData, setFormData] = useState({
       name: '',
       client: '',
@@ -156,84 +251,151 @@ export default function KalaidScopeApp() {
       }
     };
 
+    const muted = darkMode ? 'text-gray-500' : 'text-gray-600';
+
     return (
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-3">
         <div>
-          <label className="text-xs tracking-widest block mb-2">Nom du projet</label>
-          <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className={`w-full px-3 py-2 border ${border} ${subtle}`} required />
+          <label className="text-xs tracking-widest block mb-1">Nom</label>
+          <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className={`w-full px-2 py-1 text-sm border ${border} ${subtle}`} required />
         </div>
         <div>
-          <label className="text-xs tracking-widest block mb-2">Client</label>
-          <input type="text" value={formData.client} onChange={(e) => setFormData({...formData, client: e.target.value})} className={`w-full px-3 py-2 border ${border} ${subtle}`} required />
+          <label className="text-xs tracking-widest block mb-1">Client</label>
+          <input type="text" value={formData.client} onChange={(e) => setFormData({...formData, client: e.target.value})} className={`w-full px-2 py-1 text-sm border ${border} ${subtle}`} required />
         </div>
         <div>
-          <label className="text-xs tracking-widest block mb-2">Prix du talent (€)</label>
-          <input type="number" value={formData.talentPrice} onChange={(e) => setFormData({...formData, talentPrice: e.target.value})} className={`w-full px-3 py-2 border ${border} ${subtle}`} required />
+          <label className="text-xs tracking-widest block mb-1">Prix talent (€)</label>
+          <input type="number" value={formData.talentPrice} onChange={(e) => setFormData({...formData, talentPrice: e.target.value})} className={`w-full px-2 py-1 text-sm border ${border} ${subtle}`} required />
         </div>
         <div>
-          <label className="text-xs tracking-widest block mb-2">Commission agence (%)</label>
-          <input type="number" min="0" max="100" value={formData.agencyCommission} onChange={(e) => setFormData({...formData, agencyCommission: e.target.value})} className={`w-full px-3 py-2 border ${border} ${subtle}`} required />
+          <label className="text-xs tracking-widest block mb-1">Commission agence (%)</label>
+          <input type="number" min="0" max="100" value={formData.agencyCommission} onChange={(e) => setFormData({...formData, agencyCommission: e.target.value})} className={`w-full px-2 py-1 text-sm border ${border} ${subtle}`} required />
         </div>
         
         {talentPriceNum > 0 && commissionNum > 0 && (
-          <div className={`${subtle} border ${border} p-4 rounded`}>
-            <div className="grid grid-cols-3 gap-4 text-xs">
-              <div>
-                <p className={muted}>Talent gagne</p>
-                <p className="font-light text-lg mt-1">€{talentPriceNum.toLocaleString()}</p>
-              </div>
-              <div>
-                <p className={muted}>Agence gagne</p>
-                <p className="font-light text-lg mt-1">€{agencyEarnings.toLocaleString()}</p>
-              </div>
-              <div>
-                <p className={muted}>Budget total</p>
-                <p className="font-light text-lg mt-1">€{totalBudget.toLocaleString()}</p>
-              </div>
-            </div>
+          <div className={`${subtle} border ${border} p-3 rounded text-xs`}>
+            <p>Talent: €{talentPriceNum.toLocaleString()} | Agence: €{agencyEarnings.toLocaleString()} | Total: €{totalBudget.toLocaleString()}</p>
           </div>
         )}
 
         <div>
-          <label className="text-xs tracking-widest block mb-2">Statut</label>
-          <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} className={`w-full px-3 py-2 border ${border} ${subtle}`}>
+          <label className="text-xs tracking-widest block mb-1">Statut</label>
+          <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} className={`w-full px-2 py-1 text-sm border ${border} ${subtle}`}>
             <option>En cours</option>
             <option>Confirmé</option>
             <option>En attente</option>
           </select>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs tracking-widest block mb-2">Début</label>
-            <input type="date" value={formData.startDate} onChange={(e) => setFormData({...formData, startDate: e.target.value})} className={`w-full px-3 py-2 border ${border} ${subtle} text-xs`} />
-          </div>
-          <div>
-            <label className="text-xs tracking-widest block mb-2">Fin</label>
-            <input type="date" value={formData.endDate} onChange={(e) => setFormData({...formData, endDate: e.target.value})} className={`w-full px-3 py-2 border ${border} ${subtle} text-xs`} />
-          </div>
-        </div>
-        <div>
-          <label className="text-xs tracking-widest block mb-2">Talents</label>
-          <div className="space-y-2">
-            {talents.map(t => (
-              <label key={t.id} className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={formData.talentIds.includes(t.id.toString())} onChange={(e) => {
-                  if (e.target.checked) {
-                    setFormData({...formData, talentIds: [...formData.talentIds, t.id.toString()]});
-                  } else {
-                    setFormData({...formData, talentIds: formData.talentIds.filter(id => id !== t.id.toString())});
-                  }
-                }} />
-                {t.name}
-              </label>
-            ))}
-          </div>
-        </div>
-        <div className="flex gap-3 mt-6">
-          <button type="submit" className={`flex-1 py-2 px-4 ${darkMode ? 'bg-white text-black' : 'bg-black text-white'} text-sm tracking-widest`}>Créer</button>
-          <button type="button" onClick={onCancel} className={`flex-1 py-2 px-4 border ${border} text-sm tracking-widest`}>Annuler</button>
+        <div className="flex gap-2">
+          <button type="submit" className={`flex-1 py-1 px-2 ${darkMode ? 'bg-white text-black' : 'bg-black text-white'} text-xs tracking-widest`}>Créer</button>
+          <button type="button" onClick={onCancel} className={`flex-1 py-1 px-2 border ${border} text-xs tracking-widest`}>Annuler</button>
         </div>
       </form>
+    );
+  };
+
+  const InviteForm = ({ onInvite, onCancel, darkMode, border, subtle, inviteLink, copiedInvite, setCopiedInvite }) => {
+    const [email, setEmail] = useState('');
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      if (email) {
+        onInvite(email);
+        setEmail('');
+      }
+    };
+
+    const copyLink = () => {
+      navigator.clipboard.writeText(inviteLink);
+      setCopiedInvite(true);
+      setTimeout(() => setCopiedInvite(false), 2000);
+    };
+
+    const muted = darkMode ? 'text-gray-500' : 'text-gray-600';
+
+    return (
+      <div className="space-y-4">
+        {!inviteLink ? (
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div>
+              <label className="text-xs tracking-widest block mb-2">Email du talent</label>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={`w-full px-3 py-2 border ${border} ${subtle} text-sm`} placeholder="talent@exemple.com" required />
+            </div>
+            <div className="flex gap-2">
+              <button type="submit" className={`flex-1 py-2 px-3 ${darkMode ? 'bg-white text-black' : 'bg-black text-white'} text-sm tracking-widest`}>Générer lien</button>
+              <button type="button" onClick={onCancel} className={`flex-1 py-2 px-3 border ${border} text-sm tracking-widest`}>Annuler</button>
+            </div>
+          </form>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm">Lien d'invitation généré ! Partage-le :</p>
+            <div className={`border ${border} p-3 rounded flex items-center gap-2`}>
+              <input type="text" value={inviteLink} readOnly className={`flex-1 bg-transparent text-xs ${muted}`} />
+              <button onClick={copyLink} className={`p-2`}>
+                {copiedInvite ? <Check size={16} /> : <Copy size={16} />}
+              </button>
+            </div>
+            <button onClick={onCancel} className={`w-full py-2 px-3 border ${border} text-sm tracking-widest`}>Fermer</button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const SignupPage = ({ invite, darkMode, onComplete }) => {
+    const [formData, setFormData] = useState({
+      name: '',
+      role: '',
+      salary: '',
+      status: 'Disponible'
+    });
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      if (formData.name && formData.role && formData.salary) {
+        onComplete(formData);
+      }
+    };
+
+    const bg = darkMode ? 'bg-black' : 'bg-white';
+    const text = darkMode ? 'text-white' : 'text-black';
+    const border = darkMode ? 'border-gray-900' : 'border-gray-100';
+    const subtle = darkMode ? 'bg-gray-950' : 'bg-gray-50';
+    const muted = darkMode ? 'text-gray-500' : 'text-gray-600';
+
+    return (
+      <div className={`${bg} ${text} min-h-screen flex items-center justify-center p-4`}>
+        <div className={`${subtle} border ${border} rounded p-8 max-w-md w-full`}>
+          <h1 className="text-4xl font-light mb-2">Bienvenue !</h1>
+          <p className={`text-sm mb-8 ${muted}`}>Complète ton profil pour rejoindre KALAID SCOPE</p>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="text-xs tracking-widest block mb-2">Nom complet</label>
+              <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className={`w-full px-3 py-2 border ${border} ${subtle}`} required />
+            </div>
+            <div>
+              <label className="text-xs tracking-widest block mb-2">Métier / Rôle</label>
+              <input type="text" value={formData.role} onChange={(e) => setFormData({...formData, role: e.target.value})} className={`w-full px-3 py-2 border ${border} ${subtle}`} placeholder="Ex: Réalisateur, Photographe..." required />
+            </div>
+            <div>
+              <label className="text-xs tracking-widest block mb-2">Tarif mensuel estimé (€)</label>
+              <input type="number" value={formData.salary} onChange={(e) => setFormData({...formData, salary: e.target.value})} className={`w-full px-3 py-2 border ${border} ${subtle}`} required />
+            </div>
+            <div>
+              <label className="text-xs tracking-widest block mb-2">Statut</label>
+              <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} className={`w-full px-3 py-2 border ${border} ${subtle}`}>
+                <option>Disponible</option>
+                <option>En tournage</option>
+                <option>Vacances</option>
+              </select>
+            </div>
+            <button type="submit" className={`w-full py-3 px-4 ${darkMode ? 'bg-white text-black' : 'bg-black text-white'} text-sm tracking-widest font-light`}>
+              Rejoindre l'app
+            </button>
+          </form>
+        </div>
+      </div>
     );
   };
 
@@ -245,7 +407,7 @@ export default function KalaidScopeApp() {
         <p className={`text-sm tracking-widest ${muted} mb-12`}>{talent.role}</p>
 
         <div className={`flex gap-12 border-b ${border} mb-12 overflow-x-auto`}>
-          {[{ id: 'summary', label: 'Résumé' }, { id: 'planning', label: 'Planning' }, { id: 'contracts', label: 'Contrats' }, { id: 'salary', label: 'Rémunération' }].map(tab => (
+          {[{ id: 'summary', label: 'Résumé' }, { id: 'planning', label: 'Planning' }].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`text-sm tracking-widest py-4 border-b-2 whitespace-nowrap transition ${activeTab === tab.id ? 'border-current' : 'border-transparent ' + muted}`}>
               {tab.label}
             </button>
@@ -263,8 +425,13 @@ export default function KalaidScopeApp() {
               ))}
             </div>
 
-            <div className="mb-16">
-              <h2 className="text-xs tracking-widest mb-8 uppercase">Projets assignés</h2>
+            <div>
+              <div className="flex justify-between items-center mb-8">
+                <h2 className="text-xs tracking-widest uppercase">Projets assignés</h2>
+                <button onClick={() => setShowProjectForm(true)} className={`flex items-center gap-2 px-3 py-2 border ${border} text-xs tracking-widest ${hover}`}>
+                  <Plus size={14} /> Ajouter
+                </button>
+              </div>
               <div className="space-y-3">
                 {talentProjects.length > 0 ? (
                   talentProjects.map((p, i) => (
@@ -278,10 +445,6 @@ export default function KalaidScopeApp() {
                 )}
               </div>
             </div>
-
-            <button onClick={() => setShowProjectForm(true)} className={`flex items-center gap-2 px-4 py-3 border ${border} text-sm tracking-widest ${hover}`}>
-              <Plus size={16} /> Ajouter un projet
-            </button>
           </div>
         )}
 
@@ -299,125 +462,6 @@ export default function KalaidScopeApp() {
               ) : (
                 <p className={`text-sm ${muted}`}>Aucun projet</p>
               )}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'contracts' && (
-          <div>
-            <h3 className="text-xs tracking-widest mb-8 uppercase">Contrat de représentation</h3>
-            <div className={`${subtle} border ${border} p-6`}>
-              <p className="font-light mb-2">Contrat {talent.contracts.representation.exclusive ? 'exclusif' : 'non exclusif'}</p>
-              <p className={`text-sm ${muted}`}>Signé le {talent.contracts.representation.signedDate}</p>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'salary' && (
-          <div>
-            <div className="grid grid-cols-3 gap-6 mb-12">
-              {[{ label: 'Total', value: `€${talent.salary.gross.toLocaleString()}` }, { label: 'Commission', value: `-€${talent.salary.commission}` }, { label: 'Net', value: `€${talent.salary.net.toLocaleString()}` }].map((s, i) => (
-                <div key={i} className={`${subtle} p-8 border ${border} text-center`}>
-                  <p className={`text-xs tracking-widest mb-4 ${muted}`}>{s.label}</p>
-                  <p className="text-2xl font-light">{s.value}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const AgentView = () => {
-    if (selectedTalent) {
-      return (
-        <div className="px-6 lg:px-12 py-12">
-          <button onClick={() => setSelectedTalent(null)} className={`flex items-center gap-2 mb-12 p-3 transition ${hover}`}>
-            <ChevronLeft size={18} />
-            <span className="text-sm">Retour</span>
-          </button>
-          <TalentView talent={selectedTalent} />
-        </div>
-      );
-    }
-
-    return (
-      <div className="px-6 lg:px-12 py-12">
-        <h1 className="text-6xl lg:text-7xl font-light mb-2">Agent</h1>
-        <p className={`text-sm tracking-widest ${muted} mb-12`}>Disponibilité & Projets</p>
-
-        <div className={`flex gap-12 border-b ${border} mb-12 overflow-x-auto`}>
-          {[{ id: 'summary', label: 'Résumé' }, { id: 'availability', label: 'Disponibilité' }, { id: 'myprojects', label: 'Mes projets' }].map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`text-sm tracking-widest py-4 border-b-2 whitespace-nowrap transition ${activeTab === tab.id ? 'border-current' : 'border-transparent ' + muted}`}>
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {activeTab === 'summary' && (
-          <div>
-            <div className="grid grid-cols-3 gap-6 mb-16">
-              {[{ label: 'Talents actifs', value: filteredTalents.length }, { label: 'Mes projets', value: projects.filter(p => p.createdBy === 'agent').length }, { label: 'En cours', value: projects.filter(p => p.status === 'En cours').length }].map((s, i) => (
-                <div key={i} className={`${subtle} p-8 border ${border} text-center`}>
-                  <p className={`text-xs tracking-widest mb-4 ${muted}`}>{s.label}</p>
-                  <p className="text-2xl font-light">{s.value}</p>
-                </div>
-              ))}
-            </div>
-
-            <button onClick={() => setShowProjectForm(true)} className={`flex items-center gap-2 px-4 py-3 mb-12 border ${border} text-sm tracking-widest ${hover}`}>
-              <Plus size={16} /> Créer un projet
-            </button>
-
-            <div>
-              <h2 className="text-xs tracking-widest mb-8 uppercase">Talents disponibles</h2>
-              <div className="space-y-3">
-                {filteredTalents.slice(0, 3).map(t => (
-                  <button key={t.id} onClick={() => setSelectedTalent(t)} className={`w-full text-left flex justify-between py-4 px-6 border ${border} transition ${hover}`}>
-                    <div><p className="font-light">{t.name}</p><p className={`text-xs ${muted} mt-1`}>{t.role}</p></div>
-                    <p className={`text-xs px-3 py-1 ${t.status === 'Disponible' ? `${darkMode ? 'bg-green-950 text-green-400' : 'bg-green-100 text-green-800'}` : subtle}`}>{t.status}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'availability' && (
-          <div>
-            <div className="flex gap-3 mb-12 flex-wrap">
-              {[{ id: 'all', label: 'Tous' }, { id: 'disponible', label: 'Disponible' }, { id: 'tournage', label: 'En tournage' }, { id: 'vacances', label: 'Vacances' }].map(filter => (
-                <button key={filter.id} onClick={() => setFilterStatus(filter.id)} className={`text-xs tracking-widest px-4 py-2 border ${border} transition ${filterStatus === filter.id ? `${darkMode ? 'bg-white text-black' : 'bg-black text-white'}` : hover}`}>
-                  {filter.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="space-y-3">
-              {filteredTalents.map(t => (
-                <button key={t.id} onClick={() => setSelectedTalent(t)} className={`w-full text-left flex justify-between py-4 px-6 border ${border} transition ${hover}`}>
-                  <div><p className="font-light">{t.name}</p><p className={`text-xs ${muted} mt-1`}>{t.role}</p></div>
-                  <p className={`text-xs px-3 py-1 ${subtle}`}>{t.status}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'myprojects' && (
-          <div>
-            <h2 className="text-xs tracking-widest mb-8 uppercase">Mes projets créés</h2>
-            <div className="space-y-4">
-              {projects.filter(p => p.createdBy === 'agent').map(p => (
-                <div key={p.id} className={`${subtle} border ${border} p-8`}>
-                  <div className="flex justify-between mb-4">
-                    <div><h3 className="font-light text-lg">{p.name}</h3><p className={`text-xs ${muted} mt-1`}>{p.client}</p></div>
-                    <span className={`text-xs tracking-widest px-3 py-1 ${p.status === 'En cours' ? `${darkMode ? 'bg-white text-black' : 'bg-black text-white'}` : subtle}`}>{p.status}</span>
-                  </div>
-                  <p className="text-2xl font-light">€{p.budget.toLocaleString()}</p>
-                </div>
-              ))}
             </div>
           </div>
         )}
@@ -442,7 +486,7 @@ export default function KalaidScopeApp() {
         {activeTab === 'summary' && (
           <div>
             <div className="grid grid-cols-4 gap-6 mb-16">
-              {[{ label: 'Chiffre d\'affaires', value: `€${projects.reduce((a, b) => a + b.budget, 0).toLocaleString()}` }, { label: 'Projets total', value: projects.length }, { label: 'Talents', value: talents.length }, { label: 'Projets en cours', value: projects.filter(p => p.status === 'En cours').length }].map((s, i) => (
+              {[{ label: 'CA', value: `€${projects.reduce((a, b) => a + b.budget, 0).toLocaleString()}` }, { label: 'Projets', value: projects.length }, { label: 'Talents', value: talents.length }, { label: 'En cours', value: projects.filter(p => p.status === 'En cours').length }].map((s, i) => (
                 <div key={i} className={`${subtle} p-6 border ${border} text-center`}>
                   <p className={`text-xs tracking-widest mb-4 ${muted}`}>{s.label}</p>
                   <p className="text-2xl font-light">{s.value}</p>
@@ -450,15 +494,25 @@ export default function KalaidScopeApp() {
               ))}
             </div>
 
-            <button onClick={() => setShowProjectForm(true)} className={`flex items-center gap-2 px-4 py-3 mb-12 border ${border} text-sm tracking-widest ${hover}`}>
-              <Plus size={16} /> Créer un projet
-            </button>
+            <div className="flex gap-3">
+              <button onClick={() => setShowProjectForm(true)} className={`flex items-center gap-2 px-4 py-3 border ${border} text-sm tracking-widest ${hover}`}>
+                <Plus size={16} /> Projet
+              </button>
+              <button onClick={() => setShowInviteForm(true)} className={`flex items-center gap-2 px-4 py-3 border ${border} text-sm tracking-widest ${hover}`}>
+                <Plus size={16} /> Talent
+              </button>
+            </div>
           </div>
         )}
 
         {activeTab === 'talents' && (
           <div>
-            <h2 className="text-xs tracking-widest mb-8 uppercase">Tous les talents</h2>
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-xs tracking-widest uppercase">Tous les talents</h2>
+              <button onClick={() => setShowInviteForm(true)} className={`flex items-center gap-2 px-3 py-2 border ${border} text-xs tracking-widest ${hover}`}>
+                <Plus size={14} /> Inviter
+              </button>
+            </div>
             <div className="space-y-3">
               {talents.map(t => (
                 <button key={t.id} onClick={() => setSelectedTalent(t)} className={`w-full text-left flex justify-between py-4 px-6 border ${border} transition ${hover}`}>
@@ -472,7 +526,12 @@ export default function KalaidScopeApp() {
 
         {activeTab === 'projects' && (
           <div>
-            <h2 className="text-xs tracking-widest mb-8 uppercase">Tous les projets</h2>
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-xs tracking-widest uppercase">Tous les projets</h2>
+              <button onClick={() => setShowProjectForm(true)} className={`flex items-center gap-2 px-3 py-2 border ${border} text-xs tracking-widest ${hover}`}>
+                <Plus size={14} /> Créer
+              </button>
+            </div>
             <div className="space-y-4">
               {projects.map(p => (
                 <div key={p.id} className={`${subtle} border ${border} p-8`}>
@@ -480,8 +539,7 @@ export default function KalaidScopeApp() {
                     <div><h3 className="font-light text-lg">{p.name}</h3><p className={`text-xs ${muted} mt-1`}>{p.client}</p></div>
                     <span className={`text-xs tracking-widest px-3 py-1 ${p.status === 'En cours' ? `${darkMode ? 'bg-white text-black' : 'bg-black text-white'}` : subtle}`}>{p.status}</span>
                   </div>
-                  <p className="text-2xl font-light mb-4">€{p.budget.toLocaleString()}</p>
-                  <p className={`text-xs ${muted}`}>Créé par: {p.createdBy}</p>
+                  <p className="text-2xl font-light">€{p.budget.toLocaleString()}</p>
                 </div>
               ))}
             </div>
@@ -495,11 +553,11 @@ export default function KalaidScopeApp() {
     <div style={{ fontFamily: '"Futura PT", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }} className={`${bg} ${text} min-h-screen`}>
       <Header />
       {showProjectForm && <ProjectFormModal />}
-      {userRole === 'talent' && <TalentView talent={talents[0]} />}
-      {userRole === 'agent' && <AgentView />}
+      {showInviteForm && <InviteFormModal />}
+      {userRole === 'talent' && talents.length > 0 && <TalentView talent={talents[0]} />}
       {userRole === 'admin' && <AdminView />}
       <footer className={`border-t ${border} mt-20 py-12 px-6 lg:px-12 text-center text-xs ${muted}`}>
-        <p className="tracking-widest">KALAID SCOPE — v1.0 avec formulaires</p>
+        <p className="tracking-widest">KALAID SCOPE — v1.1 avec invitations</p>
       </footer>
     </div>
   );
