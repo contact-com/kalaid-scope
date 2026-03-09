@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Menu, X, Moon, Sun, Plus, Copy, Check } from 'lucide-react';
+import { Menu, X, Moon, Sun, Plus, Copy, Check } from 'lucide-react';
 
 export default function KalaidScopeApp() {
   const [userRole, setUserRole] = useState('admin');
   const [darkMode, setDarkMode] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [selectedTalent, setSelectedTalent] = useState(null);
   const [activeTab, setActiveTab] = useState('summary');
-  const [filterStatus, setFilterStatus] = useState('all');
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [projects, setProjects] = useState([]);
@@ -137,7 +135,6 @@ export default function KalaidScopeApp() {
     setTalents(updated);
     localStorage.setItem('kalaidTalents', JSON.stringify(updated));
 
-    // Mark invite as used
     const updatedInvites = invitations.map(i => 
       i.token === currentInvite.token ? { ...i, status: 'completed' } : i
     );
@@ -152,8 +149,6 @@ export default function KalaidScopeApp() {
   const getTalentProjects = (talentId) => {
     return projects.filter(p => p.talents.some(t => t.talentId === talentId));
   };
-
-  const filteredTalents = talents.filter(t => filterStatus === 'all' || t.status.toLowerCase().includes(filterStatus));
 
   if (signupMode && currentInvite) {
     return <SignupPage invite={currentInvite} darkMode={darkMode} onComplete={completeSignup} />;
@@ -173,7 +168,7 @@ export default function KalaidScopeApp() {
 
         <nav className="hidden md:flex gap-12 text-xs tracking-widest font-light">
           {[{ id: 'talent', label: 'TALENT' }, { id: 'agent', label: 'AGENT' }, { id: 'admin', label: 'ADMIN' }].map(item => (
-            <button key={item.id} onClick={() => { setUserRole(item.id); setSelectedTalent(null); setActiveTab('summary'); }} className={`pb-1 border-b-2 transition ${userRole === item.id ? 'border-current' : 'border-transparent ' + muted}`}>
+            <button key={item.id} onClick={() => { setUserRole(item.id); setActiveTab('summary'); }} className={`pb-1 border-b-2 transition ${userRole === item.id ? 'border-current' : 'border-transparent ' + muted}`}>
               {item.label}
             </button>
           ))}
@@ -188,7 +183,7 @@ export default function KalaidScopeApp() {
       {mobileMenuOpen && (
         <div className={`border-t ${border} px-6 py-6 space-y-3`}>
           {[{ id: 'talent', label: 'Talent' }, { id: 'agent', label: 'Agent' }, { id: 'admin', label: 'Admin' }].map(item => (
-            <button key={item.id} onClick={() => { setUserRole(item.id); setSelectedTalent(null); setActiveTab('summary'); setMobileMenuOpen(false); }} className={`block text-left text-sm py-2 ${userRole === item.id ? 'font-light' : muted}`}>
+            <button key={item.id} onClick={() => { setUserRole(item.id); setActiveTab('summary'); setMobileMenuOpen(false); }} className={`block text-left text-sm py-2 ${userRole === item.id ? 'font-light' : muted}`}>
               {item.label}
             </button>
           ))}
@@ -251,7 +246,7 @@ export default function KalaidScopeApp() {
       }
     };
 
-    const muted = darkMode ? 'text-gray-500' : 'text-gray-600';
+    const localMuted = darkMode ? 'text-gray-500' : 'text-gray-600';
 
     return (
       <form onSubmit={handleSubmit} className="space-y-3">
@@ -311,7 +306,7 @@ export default function KalaidScopeApp() {
       setTimeout(() => setCopiedInvite(false), 2000);
     };
 
-    const muted = darkMode ? 'text-gray-500' : 'text-gray-600';
+    const localMuted = darkMode ? 'text-gray-500' : 'text-gray-600';
 
     return (
       <div className="space-y-4">
@@ -330,7 +325,7 @@ export default function KalaidScopeApp() {
           <div className="space-y-3">
             <p className="text-sm">Lien d'invitation généré ! Partage-le :</p>
             <div className={`border ${border} p-3 rounded flex items-center gap-2`}>
-              <input type="text" value={inviteLink} readOnly className={`flex-1 bg-transparent text-xs ${muted}`} />
+              <input type="text" value={inviteLink} readOnly className={`flex-1 bg-transparent text-xs ${localMuted}`} />
               <button onClick={copyLink} className={`p-2`}>
                 {copiedInvite ? <Check size={16} /> : <Copy size={16} />}
               </button>
@@ -357,34 +352,34 @@ export default function KalaidScopeApp() {
       }
     };
 
-    const bg = darkMode ? 'bg-black' : 'bg-white';
-    const text = darkMode ? 'text-white' : 'text-black';
-    const border = darkMode ? 'border-gray-900' : 'border-gray-100';
-    const subtle = darkMode ? 'bg-gray-950' : 'bg-gray-50';
-    const muted = darkMode ? 'text-gray-500' : 'text-gray-600';
+    const signupBg = darkMode ? 'bg-black' : 'bg-white';
+    const signupText = darkMode ? 'text-white' : 'text-black';
+    const signupBorder = darkMode ? 'border-gray-900' : 'border-gray-100';
+    const signupSubtle = darkMode ? 'bg-gray-950' : 'bg-gray-50';
+    const signupMuted = darkMode ? 'text-gray-500' : 'text-gray-600';
 
     return (
-      <div className={`${bg} ${text} min-h-screen flex items-center justify-center p-4`}>
-        <div className={`${subtle} border ${border} rounded p-8 max-w-md w-full`}>
+      <div className={`${signupBg} ${signupText} min-h-screen flex items-center justify-center p-4`}>
+        <div className={`${signupSubtle} border ${signupBorder} rounded p-8 max-w-md w-full`}>
           <h1 className="text-4xl font-light mb-2">Bienvenue !</h1>
-          <p className={`text-sm mb-8 ${muted}`}>Complète ton profil pour rejoindre KALAID SCOPE</p>
+          <p className={`text-sm mb-8 ${signupMuted}`}>Complète ton profil pour rejoindre KALAID SCOPE</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="text-xs tracking-widest block mb-2">Nom complet</label>
-              <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className={`w-full px-3 py-2 border ${border} ${subtle}`} required />
+              <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className={`w-full px-3 py-2 border ${signupBorder} ${signupSubtle}`} required />
             </div>
             <div>
               <label className="text-xs tracking-widest block mb-2">Métier / Rôle</label>
-              <input type="text" value={formData.role} onChange={(e) => setFormData({...formData, role: e.target.value})} className={`w-full px-3 py-2 border ${border} ${subtle}`} placeholder="Ex: Réalisateur, Photographe..." required />
+              <input type="text" value={formData.role} onChange={(e) => setFormData({...formData, role: e.target.value})} className={`w-full px-3 py-2 border ${signupBorder} ${signupSubtle}`} placeholder="Ex: Réalisateur, Photographe..." required />
             </div>
             <div>
               <label className="text-xs tracking-widest block mb-2">Tarif mensuel estimé (€)</label>
-              <input type="number" value={formData.salary} onChange={(e) => setFormData({...formData, salary: e.target.value})} className={`w-full px-3 py-2 border ${border} ${subtle}`} required />
+              <input type="number" value={formData.salary} onChange={(e) => setFormData({...formData, salary: e.target.value})} className={`w-full px-3 py-2 border ${signupBorder} ${signupSubtle}`} required />
             </div>
             <div>
               <label className="text-xs tracking-widest block mb-2">Statut</label>
-              <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} className={`w-full px-3 py-2 border ${border} ${subtle}`}>
+              <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} className={`w-full px-3 py-2 border ${signupBorder} ${signupSubtle}`}>
                 <option>Disponible</option>
                 <option>En tournage</option>
                 <option>Vacances</option>
@@ -515,7 +510,7 @@ export default function KalaidScopeApp() {
             </div>
             <div className="space-y-3">
               {talents.map(t => (
-                <button key={t.id} onClick={() => setSelectedTalent(t)} className={`w-full text-left flex justify-between py-4 px-6 border ${border} transition ${hover}`}>
+                <button key={t.id} className={`w-full text-left flex justify-between py-4 px-6 border ${border} transition ${hover}`}>
                   <div><p className="font-light">{t.name}</p><p className={`text-xs ${muted} mt-1`}>{t.role}</p></div>
                   <p className="text-lg font-light">{t.monthlyEarnings}</p>
                 </button>
