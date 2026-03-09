@@ -124,26 +124,35 @@ export default function KalaidScopeApp() {
     const [formData, setFormData] = useState({
       name: '',
       client: '',
-      budget: '',
+      talentPrice: '',
+      agencyCommission: '',
       status: 'En cours',
       startDate: '',
       endDate: '',
       talentIds: []
     });
 
+    const talentPriceNum = parseInt(formData.talentPrice) || 0;
+    const commissionNum = parseInt(formData.agencyCommission) || 0;
+    const agencyEarnings = Math.round(talentPriceNum * (commissionNum / 100));
+    const totalBudget = talentPriceNum + agencyEarnings;
+
     const handleSubmit = (e) => {
       e.preventDefault();
-      if (formData.name && formData.client && formData.budget) {
+      if (formData.name && formData.client && formData.talentPrice && formData.agencyCommission) {
         onAdd({
           name: formData.name,
           client: formData.client,
-          budget: parseInt(formData.budget),
+          budget: totalBudget,
+          talentPrice: talentPriceNum,
+          agencyEarnings: agencyEarnings,
+          agencyCommission: commissionNum,
           status: formData.status,
           startDate: formData.startDate,
           endDate: formData.endDate,
           talents: formData.talentIds.map(id => ({ talentId: parseInt(id), percentage: 20 }))
         });
-        setFormData({ name: '', client: '', budget: '', status: 'En cours', startDate: '', endDate: '', talentIds: [] });
+        setFormData({ name: '', client: '', talentPrice: '', agencyCommission: '', status: 'En cours', startDate: '', endDate: '', talentIds: [] });
       }
     };
 
@@ -158,9 +167,33 @@ export default function KalaidScopeApp() {
           <input type="text" value={formData.client} onChange={(e) => setFormData({...formData, client: e.target.value})} className={`w-full px-3 py-2 border ${border} ${subtle}`} required />
         </div>
         <div>
-          <label className="text-xs tracking-widest block mb-2">Budget (€)</label>
-          <input type="number" value={formData.budget} onChange={(e) => setFormData({...formData, budget: e.target.value})} className={`w-full px-3 py-2 border ${border} ${subtle}`} required />
+          <label className="text-xs tracking-widest block mb-2">Prix du talent (€)</label>
+          <input type="number" value={formData.talentPrice} onChange={(e) => setFormData({...formData, talentPrice: e.target.value})} className={`w-full px-3 py-2 border ${border} ${subtle}`} required />
         </div>
+        <div>
+          <label className="text-xs tracking-widest block mb-2">Commission agence (%)</label>
+          <input type="number" min="0" max="100" value={formData.agencyCommission} onChange={(e) => setFormData({...formData, agencyCommission: e.target.value})} className={`w-full px-3 py-2 border ${border} ${subtle}`} required />
+        </div>
+        
+        {talentPriceNum > 0 && commissionNum > 0 && (
+          <div className={`${subtle} border ${border} p-4 rounded`}>
+            <div className="grid grid-cols-3 gap-4 text-xs">
+              <div>
+                <p className={muted}>Talent gagne</p>
+                <p className="font-light text-lg mt-1">€{talentPriceNum.toLocaleString()}</p>
+              </div>
+              <div>
+                <p className={muted}>Agence gagne</p>
+                <p className="font-light text-lg mt-1">€{agencyEarnings.toLocaleString()}</p>
+              </div>
+              <div>
+                <p className={muted}>Budget total</p>
+                <p className="font-light text-lg mt-1">€{totalBudget.toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div>
           <label className="text-xs tracking-widest block mb-2">Statut</label>
           <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} className={`w-full px-3 py-2 border ${border} ${subtle}`}>
